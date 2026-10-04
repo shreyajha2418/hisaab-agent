@@ -61,6 +61,7 @@
       "customerId": null,
       "confidence": "medium",
       "suggestedCustomerId": "cust_gupta",
+      "rawLabel": "RAJESH K",
       "reasoning": "Owner of Gupta Pharmacy is Rajesh Kumar; ₹14,600 is ₹400 below Gupta's open total of ₹15,000."
     },
     "allocation": [

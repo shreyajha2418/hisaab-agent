@@ -1,21 +1,39 @@
-import { Box, Heading, Text, Button, Amount } from '@razorpay/blade/components';
+import { Box } from '@razorpay/blade/components';
 import { PhoneFrame } from './components/PhoneFrame';
+import { BottomNav } from './components/BottomNav';
+import { AppStateProvider } from './state/AppStateContext';
+import { NavProvider, useNav } from './state/NavContext';
+import { HomeScreen } from './screens/HomeScreen';
+import { DecisionListScreen } from './screens/DecisionListScreen';
+import { MatchDetailScreen } from './screens/MatchDetailScreen';
+
+function Screens() {
+  const { route } = useNav();
+  const showBottomNav = route.name === 'home' || route.name === 'decisions' || route.name === 'settings';
+
+  return (
+    <Box display="flex" flexDirection="column" minHeight="100%">
+      <Box flex="1" paddingBottom={showBottomNav ? 'spacing.11' : 'spacing.0'}>
+        {route.name === 'home' && <HomeScreen />}
+        {route.name === 'decisions' && <DecisionListScreen />}
+        {route.name === 'matchDetail' && <MatchDetailScreen eventId={route.eventId} />}
+        {route.name === 'settings' && (
+          <Box padding="spacing.6">Settings — coming in Phase 3.</Box>
+        )}
+      </Box>
+      {showBottomNav && <BottomNav />}
+    </Box>
+  );
+}
 
 function App() {
   return (
     <PhoneFrame>
-      <Box padding="spacing.6">
-        <Heading size="large">Hisaab Agent</Heading>
-        <Box marginTop="spacing.3">
-          <Text>Blade smoke test — if this renders styled, the provider works.</Text>
-        </Box>
-        <Box marginTop="spacing.4">
-          <Amount value={14600} size="xlarge" type="heading" />
-        </Box>
-        <Box marginTop="spacing.4">
-          <Button>Looks good</Button>
-        </Box>
-      </Box>
+      <AppStateProvider>
+        <NavProvider>
+          <Screens />
+        </NavProvider>
+      </AppStateProvider>
     </PhoneFrame>
   );
 }

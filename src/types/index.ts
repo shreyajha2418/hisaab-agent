@@ -53,6 +53,7 @@ export interface BankStatementLine {
 
 export interface CashVoiceNote {
   id: string;
+  recordedAt: string; // ISO datetime
   audioLabel: string;
   transcript: string;
   language: string;
@@ -67,6 +68,10 @@ export interface PayerMatch {
   confidence: Confidence;
   reasoning: string;
   suggestedCustomerId?: string;
+  /** What actually showed up (e.g. "RAJESH K" from a bank narration) — shown
+   *  as the title until the payer is identified/confirmed. Only set when
+   *  customerId is null. */
+  rawLabel?: string;
 }
 
 export interface AllocationLine {
