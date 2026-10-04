@@ -19,8 +19,21 @@ export interface EventState {
   override?: EventOverride;
 }
 
+/** A payer identity the agent has learned from a confirmation — e.g.
+ *  "RAJESH K" → Gupta Pharmacy. Shown on the Memory screen, removable. */
+export interface LearnedIdentity {
+  id: string;
+  rawLabel: string;
+  customerId: string;
+}
+
+export type FlagResolution = 'pending' | 'accepted' | 'questioned';
+
 export interface AppState {
   /** billNumber -> cumulative amount applied to it by confirmed/auto_recorded events. */
   billPaid: Record<string, number>;
   events: Record<string, EventState>;
+  learnedIdentities: LearnedIdentity[];
+  /** eventId -> how its short_payment flag (if any) was resolved. Absent means 'pending'. */
+  flagResolutions: Record<string, FlagResolution>;
 }

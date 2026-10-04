@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { Amount, Box, Button, ChevronLeftIcon, Heading, IconButton, Text } from '@razorpay/blade/components';
+import { Amount, Box, Button, ChevronLeftIcon, Heading, IconButton, Text, useToast } from '@razorpay/blade/components';
 import { AllocationList } from '../components/AllocationList';
 import { ConfidenceBadge } from '../components/ConfidenceBadge';
+import { DeductionFlag } from '../components/DeductionFlag';
 import { FlagBanner } from '../components/FlagBanner';
 import { ThinkingIndicator } from '../components/ThinkingIndicator';
 import { useAgentThinking } from '../hooks/useAgentThinking';
@@ -12,8 +13,9 @@ import { getCustomer, getEffectiveAllocation, getEffectiveCustomerId, getSourceI
 import { formatShortDate, formatTime } from '../utils/dates';
 
 export function MatchDetailScreen({ eventId }: { eventId: string }) {
-  const { state, confirmEvent, undoEvent, changeCustomer } = useAppState();
+  const { state, confirmEvent, undoEvent, changeCustomer, acceptFlag, questionFlag } = useAppState();
   const { back } = useNav();
+  const { show } = useToast();
   const [pickingCustomer, setPickingCustomer] = useState(false);
 
   const isThinking = useAgentThinking(eventId);
@@ -25,11 +27,23 @@ export function MatchDetailScreen({ eventId }: { eventId: string }) {
   const allocation = getEffectiveAllocation(state, eventId);
   const source = getSourceInfo(out);
   const displayName = customer?.name ?? out.payerMatch.rawLabel ?? 'Unidentified payment';
+  const flagResolution = state.flagResolutions[eventId] ?? 'pending';
 
   // A payer confirms either a matched customer (Verma) or the AI's own
   // suggestion for an unidentified one (RAJESH K) — both are "confirmable".
   const canConfirm = liveStatus === 'needs_confirmation' && !!(customer ?? suggestedCustomer);
   const canUndo = liveStatus === 'auto_recorded' || liveStatus === 'confirmed';
+
+  // A payer is "learned" only the first time an unidentified raw label gets
+  // an identity — not on every re-confirm (e.g. after undo already restored
+  // the learned entry, so confirming again shouldn't re-toast it).
+  const handleConfirm = () => {
+    const willLearn = out.payerMatch.customerId === null && !state.events[eventId]?.override && suggestedCustomer;
+    confirmEvent(eventId);
+    if (willLearn) {
+      show({ content: `Remembered: "${out.payerMatch.rawLabel}" → ${suggestedCustomer.name}`, color: 'positive' });
+    }
+  };
 
   return (
     <Box>
@@ -70,9 +84,20 @@ export function MatchDetailScreen({ eventId }: { eventId: string }) {
             <Text marginTop="spacing.1">{out.payerMatch.reasoning}</Text>
           </Box>
 
-          {out.flags.map((flag, i) => (
-            <FlagBanner key={i} flag={flag} />
-          ))}
+          {out.flags.map((flag, i) =>
+            flag.type === 'short_payment' && liveStatus === 'confirmed' ? (
+              <DeductionFlag
+                key={i}
+                flag={flag}
+                resolution={flagResolution}
+                customerName={displayName}
+                onAccept={() => acceptFlag(eventId)}
+                onQuestion={() => questionFlag(eventId)}
+              />
+            ) : (
+              <FlagBanner key={i} flag={flag} />
+            )
+          )}
 
           {allocation.length > 0 && (
             <Box marginTop="spacing.6">
@@ -85,7 +110,7 @@ export function MatchDetailScreen({ eventId }: { eventId: string }) {
 
           <Box marginTop="spacing.7" display="flex" flexDirection="column" gap="spacing.3">
             {canConfirm && (
-              <Button isFullWidth onClick={() => confirmEvent(eventId)}>
+              <Button isFullWidth onClick={handleConfirm}>
                 {!customer && suggestedCustomer ? `Yes, this is ${suggestedCustomer.name}` : `Confirm — ${customer?.name}`}
               </Button>
             )}

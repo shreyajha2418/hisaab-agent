@@ -9,6 +9,9 @@ type Action =
   | { type: 'CONFIRM_EVENT'; eventId: string }
   | { type: 'UNDO_EVENT'; eventId: string }
   | { type: 'CHANGE_CUSTOMER'; eventId: string; customerId: string }
+  | { type: 'ACCEPT_FLAG'; eventId: string }
+  | { type: 'QUESTION_FLAG'; eventId: string }
+  | { type: 'REMOVE_LEARNED_IDENTITY'; id: string }
   | { type: 'RESET' };
 
 function getInitialState(): AppState {
@@ -24,7 +27,7 @@ function getInitialState(): AppState {
     }
   }
 
-  return { billPaid, events };
+  return { billPaid, events, learnedIdentities: [], flagResolutions: {} };
 }
 
 function reducer(state: AppState, action: Action): AppState {
@@ -47,9 +50,22 @@ function reducer(state: AppState, action: Action): AppState {
         (out.payerMatch.customerId === null && out.payerMatch.suggestedCustomerId
           ? { customerId: out.payerMatch.suggestedCustomerId, allocation: out.allocation }
           : undefined);
+
+      // Resolving a payer that was genuinely unidentified (never had its
+      // own customerId in the data) is "learning" — recorded on the
+      // Memory screen, whether Aman accepted the AI's suggestion or
+      // reassigned it manually via "Change customer".
+      const alreadyLearned = state.learnedIdentities.some((l) => l.id === action.eventId);
+      const learnedIdentities =
+        out.payerMatch.customerId === null && !alreadyLearned && override
+          ? [...state.learnedIdentities, { id: action.eventId, rawLabel: out.payerMatch.rawLabel ?? action.eventId, customerId: override.customerId }]
+          : state.learnedIdentities;
+
       return {
+        ...state,
         billPaid,
         events: { ...state.events, [action.eventId]: { liveStatus: 'confirmed', override } },
+        learnedIdentities,
       };
     }
 
@@ -61,11 +77,16 @@ function reducer(state: AppState, action: Action): AppState {
         billPaid[line.billNumber] = Math.max(0, (billPaid[line.billNumber] ?? 0) - line.amountApplied);
       }
       // Undo reverts fully to the original, unconfirmed state — including
-      // forgetting any manual "Change customer" reassignment — so Aman can
-      // reconsider from the AI's original suggestion again.
+      // forgetting any manual "Change customer" reassignment and anything
+      // learned from this event, and re-opening its deduction flag (if any)
+      // — so Aman can reconsider from the AI's original suggestion again.
+      const flagResolutions = { ...state.flagResolutions };
+      delete flagResolutions[action.eventId];
       return {
         billPaid,
         events: { ...state.events, [action.eventId]: { liveStatus: 'needs_confirmation' } },
+        learnedIdentities: state.learnedIdentities.filter((l) => l.id !== action.eventId),
+        flagResolutions,
       };
     }
 
@@ -86,6 +107,15 @@ function reducer(state: AppState, action: Action): AppState {
       };
     }
 
+    case 'ACCEPT_FLAG':
+      return { ...state, flagResolutions: { ...state.flagResolutions, [action.eventId]: 'accepted' } };
+
+    case 'QUESTION_FLAG':
+      return { ...state, flagResolutions: { ...state.flagResolutions, [action.eventId]: 'questioned' } };
+
+    case 'REMOVE_LEARNED_IDENTITY':
+      return { ...state, learnedIdentities: state.learnedIdentities.filter((l) => l.id !== action.id) };
+
     case 'RESET':
       return getInitialState();
 
@@ -99,6 +129,9 @@ interface AppStateContextValue {
   confirmEvent: (eventId: string) => void;
   undoEvent: (eventId: string) => void;
   changeCustomer: (eventId: string, customerId: string) => void;
+  acceptFlag: (eventId: string) => void;
+  questionFlag: (eventId: string) => void;
+  removeLearnedIdentity: (id: string) => void;
   reset: () => void;
 }
 
@@ -113,11 +146,14 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     (eventId: string, customerId: string) => dispatch({ type: 'CHANGE_CUSTOMER', eventId, customerId }),
     []
   );
+  const acceptFlag = useCallback((eventId: string) => dispatch({ type: 'ACCEPT_FLAG', eventId }), []);
+  const questionFlag = useCallback((eventId: string) => dispatch({ type: 'QUESTION_FLAG', eventId }), []);
+  const removeLearnedIdentity = useCallback((id: string) => dispatch({ type: 'REMOVE_LEARNED_IDENTITY', id }), []);
   const reset = useCallback(() => dispatch({ type: 'RESET' }), []);
 
   const value = useMemo(
-    () => ({ state, confirmEvent, undoEvent, changeCustomer, reset }),
-    [state, confirmEvent, undoEvent, changeCustomer, reset]
+    () => ({ state, confirmEvent, undoEvent, changeCustomer, acceptFlag, questionFlag, removeLearnedIdentity, reset }),
+    [state, confirmEvent, undoEvent, changeCustomer, acceptFlag, questionFlag, removeLearnedIdentity, reset]
   );
 
   return <AppStateContext.Provider value={value}>{children}</AppStateContext.Provider>;

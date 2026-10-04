@@ -136,8 +136,42 @@ export function getOverdueBills(state: AppState): OverdueBill[] {
     .filter((b) => b.remaining > 0 && b.days > OVERDUE_THRESHOLD_DAYS);
 }
 
+export interface PendingDeductionFlag {
+  eventId: string;
+  out: AiOutput;
+  customer: Customer | undefined;
+  displayName: string;
+  shortBy: number;
+  message: string;
+}
+
+/** Confirmed events carrying a short_payment flag Aman hasn't accepted or
+ * questioned yet. Only confirmed events are included — an unresolved match
+ * shows the flag as informational only, per the PRD's "after confirming"
+ * framing; there's nothing to accept/question until the money is recorded. */
+export function getPendingDeductionFlags(state: AppState): PendingDeductionFlag[] {
+  return getAllEvents(state)
+    .filter((e) => e.liveStatus === 'confirmed')
+    .flatMap((e) => {
+      const flag = e.out.flags.find((f) => f.type === 'short_payment');
+      if (!flag || (state.flagResolutions[e.eventId] ?? 'pending') !== 'pending') return [];
+      return [
+        {
+          eventId: e.eventId,
+          out: e.out,
+          customer: e.customer,
+          displayName: e.displayName,
+          shortBy: flag.shortBy ?? 0,
+          message: flag.message,
+        },
+      ];
+    });
+}
+
 export function getDecisionsWaitingCount(state: AppState): number {
-  return getNeedsConfirmationEvents(state).length + getOverdueBills(state).length;
+  return (
+    getNeedsConfirmationEvents(state).length + getOverdueBills(state).length + getPendingDeductionFlags(state).length
+  );
 }
 
 export function getTotalOutstanding(state: AppState): number {

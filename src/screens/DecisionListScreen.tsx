@@ -2,11 +2,13 @@ import { useState } from 'react';
 import { Badge, Box, Button, Heading, Text } from '@razorpay/blade/components';
 import { ConfidenceBadge } from '../components/ConfidenceBadge';
 import { DecisionCard } from '../components/DecisionCard';
+import { formatINR } from '../utils/currency';
 import { useAppState } from '../state/AppStateContext';
 import { useNav } from '../state/NavContext';
 import {
   getNeedsConfirmationEvents,
   getOverdueBills,
+  getPendingDeductionFlags,
   getResolvedEvents,
   getSetAsideEvents,
 } from '../state/selectors';
@@ -32,6 +34,7 @@ export function DecisionListScreen() {
 
   const needsYou = getNeedsConfirmationEvents(state);
   const overdue = getOverdueBills(state);
+  const deductionFlags = getPendingDeductionFlags(state);
   const done = getResolvedEvents(state);
   const setAside = getSetAsideEvents(state);
 
@@ -43,7 +46,7 @@ export function DecisionListScreen() {
 
       <Box marginBottom="spacing.8">
         <SectionHeading>Needs you</SectionHeading>
-        {needsYou.length === 0 && overdue.length === 0 ? (
+        {needsYou.length === 0 && overdue.length === 0 && deductionFlags.length === 0 ? (
           <Text color="surface.text.gray.muted">Nothing waiting — you're all caught up.</Text>
         ) : (
           <Box borderTopWidth="thin" borderColor="surface.border.gray.muted">
@@ -71,6 +74,17 @@ export function DecisionListScreen() {
                   subtitle={`${bill.billNumber} — ${days} days overdue`}
                   amount={remaining}
                   badge={<Badge color="negative">Overdue</Badge>}
+                />
+              </Box>
+            ))}
+            {deductionFlags.map((f) => (
+              <Box key={f.eventId} borderBottomWidth="thin" borderColor="surface.border.gray.muted">
+                <DecisionCard
+                  title={f.displayName}
+                  subtitle={`${formatINR(f.shortBy)} short — tap to review`}
+                  amount={f.out.amount}
+                  badge={<Badge color="notice">Flagged</Badge>}
+                  onClick={() => navigate({ name: 'matchDetail', eventId: f.eventId })}
                 />
               </Box>
             ))}
