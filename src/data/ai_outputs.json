@@ -1,0 +1,122 @@
+{
+  "pay_RQ9H3K2L8P4N1X": {
+    "eventId": "pay_RQ9H3K2L8P4N1X",
+    "sourceType": "razorpay_payment",
+    "amount": 12000,
+    "payerMatch": {
+      "customerId": "cust_sharma",
+      "confidence": "high",
+      "reasoning": "anilsharma@okaxis is a known Razorpay QR identity for Sharma Medicals — matched automatically."
+    },
+    "allocation": [
+      { "billNumber": "S-101", "amountApplied": 4000, "remainingOnBill": 0 },
+      { "billNumber": "S-115", "amountApplied": 6000, "remainingOnBill": 0 },
+      { "billNumber": "S-122", "amountApplied": 2000, "remainingOnBill": 3000 }
+    ],
+    "flags": [],
+    "status": "auto_recorded"
+  },
+
+  "bank_2": {
+    "eventId": "bank_2",
+    "sourceType": "bank_line",
+    "amount": 6000,
+    "payerMatch": {
+      "customerId": "cust_kapoor",
+      "confidence": "high",
+      "reasoning": "deepakkapoor@okicici is Kapoor Pharma's known bank UPI ID, and ₹6,000 matches bill K-301 exactly."
+    },
+    "allocation": [{ "billNumber": "K-301", "amountApplied": 6000, "remainingOnBill": 0 }],
+    "flags": [],
+    "status": "auto_recorded"
+  },
+
+  "voice_001": {
+    "eventId": "voice_001",
+    "sourceType": "cash_note",
+    "amount": 8000,
+    "extracted": {
+      "customerName": "Verma Medical Store",
+      "amount": 8000,
+      "mode": "cash"
+    },
+    "payerMatch": {
+      "customerId": "cust_verma",
+      "confidence": "high",
+      "reasoning": "Heard \"Verma\" in the voice note — matched to Verma Medical Store. Applied to the oldest open bills."
+    },
+    "allocation": [
+      { "billNumber": "V-101", "amountApplied": 5000, "remainingOnBill": 0 },
+      { "billNumber": "V-108", "amountApplied": 3000, "remainingOnBill": 2000 }
+    ],
+    "flags": [],
+    "status": "needs_confirmation"
+  },
+
+  "bank_1": {
+    "eventId": "bank_1",
+    "sourceType": "bank_line",
+    "amount": 14600,
+    "payerMatch": {
+      "customerId": null,
+      "confidence": "medium",
+      "suggestedCustomerId": "cust_gupta",
+      "reasoning": "Owner of Gupta Pharmacy is Rajesh Kumar; ₹14,600 is ₹400 below Gupta's open total of ₹15,000."
+    },
+    "allocation": [
+      { "billNumber": "G-201", "amountApplied": 4000, "remainingOnBill": 0 },
+      { "billNumber": "G-214", "amountApplied": 6000, "remainingOnBill": 0 },
+      { "billNumber": "G-230", "amountApplied": 4600, "remainingOnBill": 400 }
+    ],
+    "flags": [
+      {
+        "type": "short_payment",
+        "message": "Likely a deduction (e.g. expiry return). No return note found in bills. Accept / Question it.",
+        "shortBy": 400
+      }
+    ],
+    "status": "needs_confirmation"
+  },
+
+  "bank_3": {
+    "eventId": "bank_3",
+    "sourceType": "bank_line",
+    "amount": 42000,
+    "payerMatch": {
+      "customerId": null,
+      "confidence": "high",
+      "reasoning": "Matched to Razorpay settlement RZPY2026100412345 by UTR — already counted as QR revenue, not a separate customer payment."
+    },
+    "allocation": [],
+    "flags": [{ "type": "not_customer_payment", "message": "Razorpay settlement, matched by UTR — not counted twice." }],
+    "status": "set_aside"
+  },
+
+  "bank_4": {
+    "eventId": "bank_4",
+    "sourceType": "bank_line",
+    "amount": 20000,
+    "payerMatch": {
+      "customerId": null,
+      "confidence": "high",
+      "reasoning": "Matches a recent cash entry you made — this is your own deposit, not new customer money."
+    },
+    "allocation": [],
+    "flags": [{ "type": "not_customer_payment", "message": "Your own cash deposit — not a customer payment." }],
+    "status": "set_aside"
+  },
+
+  "bank_5": {
+    "eventId": "bank_5",
+    "sourceType": "bank_line",
+    "amount": 312,
+    "payerMatch": {
+      "customerId": null,
+      "confidence": "high",
+      "reasoning": "Bank narration \"INT PD\" — interest credit, not a customer payment."
+    },
+    "allocation": [],
+    "flags": [{ "type": "not_customer_payment", "message": "Bank interest — not a customer payment." }],
+    "status": "set_aside"
+  }
+}

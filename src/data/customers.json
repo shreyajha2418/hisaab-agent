@@ -1,0 +1,48 @@
+[
+  {
+    "id": "cust_sharma",
+    "name": "Sharma Medicals",
+    "ownerName": "Anil Sharma",
+    "phone": "+91 98765 11001",
+    "knownIdentities": [
+      { "type": "upi", "value": "anilsharma@okaxis", "label": "Razorpay QR" }
+    ],
+    "paymentHabit": "Pays via Razorpay QR, usually within a week of each bill."
+  },
+  {
+    "id": "cust_verma",
+    "name": "Verma Medical Store",
+    "ownerName": "Suresh Verma",
+    "phone": "+91 98765 11002",
+    "knownIdentities": [],
+    "paymentHabit": "Always pays cash, one lump sum at a time."
+  },
+  {
+    "id": "cust_gupta",
+    "name": "Gupta Pharmacy",
+    "ownerName": "Rajesh Kumar",
+    "phone": "+91 98765 11003",
+    "knownIdentities": [],
+    "paymentHabit": "Pays by bank transfer. Sometimes deducts for expiry returns without a note."
+  },
+  {
+    "id": "cust_kapoor",
+    "name": "Kapoor Pharma",
+    "ownerName": "Deepak Kapoor",
+    "phone": "+91 98765 11004",
+    "knownIdentities": [
+      { "type": "upi", "value": "deepakkapoor@okicici", "label": "Personal bank UPI" }
+    ],
+    "paymentHabit": "Pays exact bill amounts via UPI, one bill at a time."
+  },
+  {
+    "id": "cust_mehta",
+    "name": "Mehta Medicos",
+    "ownerName": "Vikram Mehta",
+    "phone": "+91 98765 11005",
+    "knownIdentities": [
+      { "type": "upi", "value": "vikrammehta@okhdfcbank", "label": "Personal bank UPI" }
+    ],
+    "paymentHabit": "Historically prompt, but has gone quiet on one old bill."
+  }
+]

@@ -1,0 +1,21 @@
+[
+  { "billNumber": "S-095", "customerId": "cust_sharma", "date": "2026-08-28", "amount": 3000, "status": "paid" },
+  { "billNumber": "S-101", "customerId": "cust_sharma", "date": "2026-09-02", "amount": 4000, "status": "open" },
+  { "billNumber": "S-115", "customerId": "cust_sharma", "date": "2026-09-14", "amount": 6000, "status": "open" },
+  { "billNumber": "S-122", "customerId": "cust_sharma", "date": "2026-09-24", "amount": 5000, "status": "open" },
+
+  { "billNumber": "V-101", "customerId": "cust_verma", "date": "2026-09-12", "amount": 5000, "status": "open" },
+  { "billNumber": "V-108", "customerId": "cust_verma", "date": "2026-09-25", "amount": 5000, "status": "open" },
+  { "billNumber": "V-120", "customerId": "cust_verma", "date": "2026-10-01", "amount": 2000, "status": "open" },
+
+  { "billNumber": "G-195", "customerId": "cust_gupta", "date": "2026-08-25", "amount": 2500, "status": "paid" },
+  { "billNumber": "G-201", "customerId": "cust_gupta", "date": "2026-09-01", "amount": 4000, "status": "open" },
+  { "billNumber": "G-214", "customerId": "cust_gupta", "date": "2026-09-10", "amount": 6000, "status": "open" },
+  { "billNumber": "G-230", "customerId": "cust_gupta", "date": "2026-09-20", "amount": 5000, "status": "open" },
+
+  { "billNumber": "K-290", "customerId": "cust_kapoor", "date": "2026-09-15", "amount": 4000, "status": "paid" },
+  { "billNumber": "K-301", "customerId": "cust_kapoor", "date": "2026-09-26", "amount": 6000, "status": "open" },
+  { "billNumber": "K-315", "customerId": "cust_kapoor", "date": "2026-09-29", "amount": 3500, "status": "open" },
+
+  { "billNumber": "M-090", "customerId": "cust_mehta", "date": "2026-08-19", "amount": 18500, "status": "open" }
+]

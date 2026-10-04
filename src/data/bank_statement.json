@@ -1,0 +1,37 @@
+[
+  {
+    "id": "bank_1",
+    "date": "2026-10-04",
+    "description": "NEFT-N26100412345X-RAJESH K-SBININBB123",
+    "creditAmount": 14600,
+    "reference": "N26100412345X"
+  },
+  {
+    "id": "bank_2",
+    "date": "2026-10-03",
+    "description": "UPI/deepakkapoor@okicici/PAY/K301 BILL/ICIC0001234",
+    "creditAmount": 6000,
+    "reference": "402718356291"
+  },
+  {
+    "id": "bank_3",
+    "date": "2026-10-04",
+    "description": "RAZORPAY SOFTWARE PVT LTD-SETTLEMENT-RZPY2026100412345",
+    "creditAmount": 42000,
+    "reference": "RZPY2026100412345"
+  },
+  {
+    "id": "bank_4",
+    "date": "2026-10-02",
+    "description": "BY CASH DEPOSIT-SHREE RAM PHARMA-BR0042",
+    "creditAmount": 20000,
+    "reference": "CD0042198"
+  },
+  {
+    "id": "bank_5",
+    "date": "2026-09-30",
+    "description": "INT PD:01-04-26 TO 30-09-26",
+    "creditAmount": 312,
+    "reference": "INT0930"
+  }
+]
