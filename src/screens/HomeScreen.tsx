@@ -1,4 +1,4 @@
-import { Amount, Box, Card, CardBody, Heading, Text } from '@razorpay/blade/components';
+import { Amount, Box, Button, Card, CardBody, Heading, MicIcon, Text, UploadIcon } from '@razorpay/blade/components';
 import { useAppState } from '../state/AppStateContext';
 import { useNav } from '../state/NavContext';
 import { getDecisionsWaitingCount, getNeedsConfirmationEvents, getOverdueBills, getTodayByChannel, getTotalOutstanding } from '../state/selectors';
@@ -14,7 +14,7 @@ function StatRow({ label, value }: { label: string; value: number }) {
 
 export function HomeScreen() {
   const { state } = useAppState();
-  const { switchTab } = useNav();
+  const { switchTab, navigate } = useNav();
 
   const byChannel = getTodayByChannel();
   const todayTotal = byChannel.razorpayQr + byChannel.bank + byChannel.cash;
@@ -81,6 +81,15 @@ export function HomeScreen() {
             <Amount value={totalOutstanding} suffix="none" size="xlarge" type="heading" />
           </CardBody>
         </Card>
+      </Box>
+
+      <Box marginTop="spacing.7" display="flex" gap="spacing.3">
+        <Button variant="secondary" icon={MicIcon} onClick={() => navigate({ name: 'addCash' })}>
+          Add cash
+        </Button>
+        <Button variant="secondary" icon={UploadIcon} onClick={() => navigate({ name: 'uploadBills' })}>
+          Upload bills
+        </Button>
       </Box>
     </Box>
   );

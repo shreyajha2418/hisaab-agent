@@ -7,6 +7,9 @@ import { HomeScreen } from './screens/HomeScreen';
 import { DecisionListScreen } from './screens/DecisionListScreen';
 import { MatchDetailScreen } from './screens/MatchDetailScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
+import { AddCashScreen } from './screens/AddCashScreen';
+import { UploadBillsScreen } from './screens/UploadBillsScreen';
+import { CustomerDuesScreen } from './screens/CustomerDuesScreen';
 
 function Screens() {
   const { route } = useNav();
@@ -19,6 +22,9 @@ function Screens() {
         {route.name === 'decisions' && <DecisionListScreen />}
         {route.name === 'matchDetail' && <MatchDetailScreen eventId={route.eventId} />}
         {route.name === 'settings' && <SettingsScreen />}
+        {route.name === 'addCash' && <AddCashScreen />}
+        {route.name === 'uploadBills' && <UploadBillsScreen />}
+        {route.name === 'customerDues' && <CustomerDuesScreen customerId={route.customerId} />}
       </Box>
       {showBottomNav && <BottomNav />}
     </Box>

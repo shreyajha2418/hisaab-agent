@@ -74,6 +74,7 @@ export function DecisionListScreen() {
                   subtitle={`${bill.billNumber} — ${days} days overdue`}
                   amount={remaining}
                   badge={<Badge color="negative">Overdue</Badge>}
+                  onClick={() => navigate({ name: 'customerDues', customerId: bill.customerId })}
                 />
               </Box>
             ))}

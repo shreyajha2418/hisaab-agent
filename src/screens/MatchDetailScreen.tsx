@@ -14,7 +14,7 @@ import { formatShortDate, formatTime } from '../utils/dates';
 
 export function MatchDetailScreen({ eventId }: { eventId: string }) {
   const { state, confirmEvent, undoEvent, changeCustomer, acceptFlag, questionFlag } = useAppState();
-  const { back } = useNav();
+  const { back, navigate } = useNav();
   const { show } = useToast();
   const [pickingCustomer, setPickingCustomer] = useState(false);
 
@@ -138,6 +138,16 @@ export function MatchDetailScreen({ eventId }: { eventId: string }) {
                   </Box>
                 ))}
               </Box>
+            )}
+
+            {customer && (
+              <Button
+                variant="tertiary"
+                isFullWidth
+                onClick={() => navigate({ name: 'customerDues', customerId: customer.id })}
+              >
+                View {customer.name}'s dues
+              </Button>
             )}
 
             {canUndo && (

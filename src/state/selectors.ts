@@ -208,3 +208,13 @@ export function getCustomerOpenBills(state: AppState, customerId: string) {
 export function getCustomerDues(state: AppState, customerId: string): number {
   return getCustomerOpenBills(state, customerId).reduce((sum, b) => sum + b.remaining, 0);
 }
+
+/** Resolved (auto_recorded/confirmed) events currently attributed to this
+ * customer — effective customer, so a manually reassigned or confirmed
+ * unidentified payment (RAJESH K -> Gupta Pharmacy) shows up under Gupta's
+ * dues view, not left out just because the source data never named them. */
+export function getCustomerRecentPayments(state: AppState, customerId: string): DecisionEvent[] {
+  return getAllEvents(state)
+    .filter((e) => (e.liveStatus === 'auto_recorded' || e.liveStatus === 'confirmed') && e.customer?.id === customerId)
+    .sort((a, b) => (a.source.dateTime < b.source.dateTime ? 1 : -1));
+}
