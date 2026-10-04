@@ -25,6 +25,9 @@ export function HomeScreen() {
 
   return (
     <Box padding="spacing.6">
+      <Text size="small" weight="semibold" color="interactive.text.primary.normal">
+        Hisaab Agent
+      </Text>
       <Text size="small" color="surface.text.gray.muted">
         Shree Ram Pharma Distributors
       </Text>

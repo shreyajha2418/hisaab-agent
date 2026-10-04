@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Badge, Box, Button, Heading, Text } from '@razorpay/blade/components';
+import { Badge, Box, Button, CheckCircleIcon, ChevronDownIcon, ChevronUpIcon, Heading, Text } from '@razorpay/blade/components';
 import { ConfidenceBadge } from '../components/ConfidenceBadge';
 import { DecisionCard } from '../components/DecisionCard';
 import { formatINR } from '../utils/currency';
@@ -47,7 +47,10 @@ export function DecisionListScreen() {
       <Box marginBottom="spacing.8">
         <SectionHeading>Needs you</SectionHeading>
         {needsYou.length === 0 && overdue.length === 0 && deductionFlags.length === 0 ? (
-          <Text color="surface.text.gray.muted">Nothing waiting — you're all caught up.</Text>
+          <Box display="flex" alignItems="center" gap="spacing.2" paddingY="spacing.2">
+            <CheckCircleIcon color="feedback.icon.positive.intense" size="medium" />
+            <Text color="surface.text.gray.muted">Nothing waiting — you're all caught up.</Text>
+          </Box>
         ) : (
           <Box borderTopWidth="thin" borderColor="surface.border.gray.muted">
             {needsYou.map((e) => (
@@ -121,9 +124,20 @@ export function DecisionListScreen() {
       <Box>
         <button
           onClick={() => setShowSetAside((s) => !s)}
-          style={{ border: 'none', background: 'none', padding: 0, cursor: 'pointer', font: 'inherit', color: 'inherit' }}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            border: 'none',
+            background: 'none',
+            padding: 0,
+            cursor: 'pointer',
+            font: 'inherit',
+            color: 'inherit',
+          }}
         >
-          <SectionHeading>{`Set aside (not customer payments) ${showSetAside ? '▾' : '▸'}`}</SectionHeading>
+          <SectionHeading>Set aside (not customer payments)</SectionHeading>
+          {showSetAside ? <ChevronUpIcon size="small" /> : <ChevronDownIcon size="small" />}
         </button>
         {showSetAside && (
           <Box borderTopWidth="thin" borderColor="surface.border.gray.muted">

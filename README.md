@@ -52,3 +52,20 @@ scripts/
 ## Prototype disclosure
 
 The app itself includes a small note (in a settings/about sheet) saying: *"Prototype: AI outputs are pre-computed from synthetic data."*
+
+## Demo script (90 seconds)
+
+Maps the PRD's own demo-moments table to actual taps in this build. Reset demo (Settings → Demo) before each recording take.
+
+| Time | Beat | What to do |
+| --- | --- | --- |
+| 0–15s | The problem | Open on Home — "Today", 3 decisions waiting, money in from three channels, nothing recorded by hand |
+| 15–30s | Cash voice note | Home → **Add cash** → Record voice note → transcript "Verma ne 8000 cash diye" appears → Match it → Review match → shows ₹2,000 left pending on V-108 |
+| 30–45s | Payer identification, learning | Decisions → tap **RAJESH K** → "Yes, this is Gupta Pharmacy" → toast "Remembered…" fires, title updates |
+| 45–65s | Recovery (deduction) | Same screen, now confirmed → the ₹400 short-payment flag is live → **Question it** → drafted message appears |
+| 65–80s | Morning decision list, two minutes | Back to Decisions — Sharma, Kapoor, Verma and Gupta Pharmacy all sit under "Done automatically"; Mehta Medicos shows 46 days overdue under "Needs you" |
+| 80–90s | Close | Decisions → tap **Mehta Medicos** → dues view: ₹18,500, 46 days, Overdue badge — the number Aman now has going into collections |
+
+## Status
+
+All 8 MVP screens are built: Home, Add cash, Upload bills, Decision list, Match detail, Customer dues, Settings (Memory + Reset demo), and the payer-confirmation + deduction-flag flow inside Match detail. See `BUILD_NOTES.md` for what was built each phase and the trade-offs behind it.
