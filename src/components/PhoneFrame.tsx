@@ -26,6 +26,9 @@ const Frame = styled.div`
   overflow: hidden;
   position: relative;
   background: #fff;
+  /* Makes position:fixed children (Blade's BottomNav, toasts) anchor to the
+     phone frame instead of the browser window on desktop. */
+  transform: translateZ(0);
 
   @media (max-width: 480px) {
     width: 100%;
@@ -56,6 +59,13 @@ const Screen = styled.div`
   height: 100%;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  /* Keep screen titles clear of the notch on desktop. */
+  padding-top: 24px;
+  box-sizing: border-box;
+
+  @media (max-width: 480px) {
+    padding-top: 0;
+  }
 `;
 
 export function PhoneFrame({ children }: { children: ReactNode }) {
