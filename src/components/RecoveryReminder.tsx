@@ -62,7 +62,7 @@ export function RecoveryReminder({ customer, overdueBills, record, sent, onSend 
           isDismissible={false}
           isFullWidth
         />
-        <Box padding="spacing.3" backgroundColor="surface.background.gray.moderate" borderRadius="medium">
+        <Box padding="spacing.3" backgroundColor="feedback.background.positive.subtle" borderWidth="thin" borderColor="interactive.border.positive.faded" borderRadius="medium">
           <Text size="small" color="surface.text.gray.muted">
             Sent just now
           </Text>
@@ -117,7 +117,7 @@ export function RecoveryReminder({ customer, overdueBills, record, sent, onSend 
             numberOfLines={5}
           />
         ) : (
-          <Box padding="spacing.3" borderWidth="thin" borderColor="surface.border.gray.muted" borderRadius="medium">
+          <Box padding="spacing.3" backgroundColor="feedback.background.positive.subtle" borderWidth="thin" borderColor="interactive.border.positive.faded" borderRadius="medium">
             <Text size="small">{message}</Text>
             <Box display="flex" alignItems="center" gap="spacing.2" marginTop="spacing.3">
               <LinkIcon size="small" color="surface.icon.primary.normal" />
