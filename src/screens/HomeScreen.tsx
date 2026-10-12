@@ -16,7 +16,7 @@ export function HomeScreen() {
   const { state } = useAppState();
   const { switchTab, navigate } = useNav();
 
-  const byChannel = getTodayByChannel();
+  const byChannel = getTodayByChannel(state);
   const todayTotal = byChannel.razorpayQr + byChannel.bank + byChannel.cash;
   const decisionsWaiting = getDecisionsWaitingCount(state);
   const matchesToConfirm = getNeedsConfirmationEvents(state).length;

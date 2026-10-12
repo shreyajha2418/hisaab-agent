@@ -21,7 +21,7 @@ npm run preview    # preview the production build locally
 
 ## What this is (and isn't)
 
-- **No real AI calls, no API keys.** Every "agent" output — who paid, which bills, the reasoning text, the confidence level, the short-payment flag — is pre-computed in `src/data/ai_outputs.json` and played back with a short delay so it feels live. The shapes are realistic (see `src/types/`) so the pre-computed lookup could be swapped for a real model call later without changing any screen.
+- **No real AI calls, no API keys.** Every "agent" output for the scripted scenarios — who paid, which bills, the reasoning text, the confidence level, the short-payment flag — is pre-computed in `src/data/ai_outputs.json` and played back with a short delay so it feels live. The shapes are realistic (see `src/types/`) so the pre-computed lookup could be swapped for a real model call later without changing any screen. **One exception:** Add cash really transcribes what you say (the browser's own free, keyless `SpeechRecognition` API — no backend, no account) and really matches it to one of the 5 customers by name + amount (`src/utils/parseVoicePayment.ts`, simple heuristic matching, not AI — same category as the oldest-bills-first allocation rule below). See `BUILD_NOTES.md` Phase 10 for why.
 - **No backend, no database.** Everything lives in synthetic JSON (`src/data/`) and in-memory React state (`src/state/`). A "Reset demo" control restores the starting state.
 - **One fictional merchant, five fictional customers.** None of the names, numbers or bank/UPI details are real.
 
@@ -60,7 +60,7 @@ Maps the PRD's own demo-moments table to actual taps in this build. Reset demo (
 | Time | Beat | What to do |
 | --- | --- | --- |
 | 0–15s | The problem | Open on Home — "Today", 3 decisions waiting, money in from three channels, nothing recorded by hand |
-| 15–30s | Cash voice note | Home → **Add cash** → Record voice note → transcript "Verma ne 8000 cash diye" appears → Match it → Review match → shows ₹2,000 left pending on V-108 |
+| 15–30s | Cash voice note | Home → **Add cash** → Record voice note → say "Verma ne 8000 cash diye" (really transcribed) → Match it → Review match → shows ₹2,000 left pending on V-108 |
 | 30–45s | Payer identification, learning | Tap **Decisions** in the bottom bar → tap **RAJESH K** → "Yes, this is Gupta Pharmacy" → toast "Remembered…" fires, title updates |
 | 45–65s | Recovery (deduction) | Same screen, now confirmed → the ₹400 short-payment flag is live → **Ask on WhatsApp** → "Message sent to Gupta Pharmacy on WhatsApp" |
 | 65–80s | Morning decision list, two minutes | Back to Decisions — Sharma, Kapoor, Verma and Gupta Pharmacy all sit under "Done automatically"; Mehta Medicos shows 46 days overdue under "Needs you" |

@@ -2,8 +2,9 @@ import { createContext, useCallback, useContext, useMemo, useReducer } from 'rea
 import type { ReactNode } from 'react';
 import { aiOutputs } from '../data';
 import { allocateOldestFirst } from '../utils/allocate';
-import { getCustomerOpenBills } from './selectors';
+import { getCustomer, getCustomerOpenBills, getOutput } from './selectors';
 import type { AppState, EventState } from './types';
+import type { AiOutput, CashVoiceNote, PayerMatch } from '../types';
 
 type Action =
   | { type: 'CONFIRM_EVENT'; eventId: string }
@@ -13,6 +14,16 @@ type Action =
   | { type: 'QUESTION_FLAG'; eventId: string }
   | { type: 'REMOVE_LEARNED_IDENTITY'; id: string }
   | { type: 'SEND_REMINDER'; customerId: string; message: string; channel: string }
+  | {
+      type: 'RECORD_VOICE_PAYMENT';
+      eventId: string;
+      transcript: string;
+      recordedAt: string;
+      audioLabel: string;
+      amount: number;
+      customerId: string | null;
+      rawLabel: string;
+    }
   | { type: 'RESET' };
 
 function getInitialState(): AppState {
@@ -28,13 +39,22 @@ function getInitialState(): AppState {
     }
   }
 
-  return { billPaid, events, learnedIdentities: [], flagResolutions: {}, sentReminders: {} };
+  return {
+    billPaid,
+    events,
+    learnedIdentities: [],
+    flagResolutions: {},
+    sentReminders: {},
+    customEvents: {},
+    customVoiceNotes: {},
+  };
 }
 
 function reducer(state: AppState, action: Action): AppState {
   switch (action.type) {
     case 'CONFIRM_EVENT': {
-      const out = aiOutputs[action.eventId];
+      const out = getOutput(state, action.eventId);
+      if (!out) return state;
       const existingOverride = state.events[action.eventId]?.override;
       const allocation = existingOverride?.allocation ?? out.allocation;
       const billPaid = { ...state.billPaid };
@@ -71,7 +91,8 @@ function reducer(state: AppState, action: Action): AppState {
     }
 
     case 'UNDO_EVENT': {
-      const out = aiOutputs[action.eventId];
+      const out = getOutput(state, action.eventId);
+      if (!out) return state;
       const allocation = state.events[action.eventId]?.override?.allocation ?? out.allocation;
       const billPaid = { ...state.billPaid };
       for (const line of allocation) {
@@ -98,7 +119,8 @@ function reducer(state: AppState, action: Action): AppState {
         date: b.bill.date,
         remaining: b.remaining,
       }));
-      const out = aiOutputs[action.eventId];
+      const out = getOutput(state, action.eventId);
+      if (!out) return state;
       const allocation = allocateOldestFirst(out.amount, openBills);
       return {
         ...state,
@@ -126,6 +148,61 @@ function reducer(state: AppState, action: Action): AppState {
         sentReminders: { ...state.sentReminders, [action.customerId]: { message: action.message, channel: action.channel } },
       };
 
+    case 'RECORD_VOICE_PAYMENT': {
+      // Cash always needs a human nod (Phase 1 rule), so this lands as
+      // needs_confirmation regardless of how confident the name match is —
+      // same as the scripted voice note. Unlike every other event here,
+      // the payer match and allocation are genuinely computed from what
+      // Aman actually said, not looked up, because an arbitrary live
+      // recording can't be pre-computed.
+      const customer = action.customerId ? getCustomer(action.customerId) : undefined;
+      const payerMatch: PayerMatch = customer
+        ? {
+            customerId: customer.id,
+            confidence: 'high',
+            reasoning: `Heard "${customer.name.split(' ')[0]}" in the voice note — matched to ${customer.name}. Applied to the oldest open bills.`,
+          }
+        : {
+            customerId: null,
+            confidence: 'low',
+            reasoning: 'Could not match a known customer name in the voice note — pick one manually.',
+            rawLabel: action.rawLabel,
+          };
+      const allocation = customer
+        ? allocateOldestFirst(
+            action.amount,
+            getCustomerOpenBills(state, customer.id).map((b) => ({
+              billNumber: b.bill.billNumber,
+              date: b.bill.date,
+              remaining: b.remaining,
+            }))
+          )
+        : [];
+      const out: AiOutput = {
+        eventId: action.eventId,
+        sourceType: 'cash_note',
+        amount: action.amount,
+        payerMatch,
+        allocation,
+        flags: [],
+        status: 'needs_confirmation',
+        extracted: { customerName: customer?.name ?? action.rawLabel, amount: action.amount, mode: 'cash' },
+      };
+      const voiceNote: CashVoiceNote = {
+        id: action.eventId,
+        recordedAt: action.recordedAt,
+        audioLabel: action.audioLabel,
+        transcript: action.transcript,
+        language: 'Hinglish',
+      };
+      return {
+        ...state,
+        customEvents: { ...state.customEvents, [action.eventId]: out },
+        customVoiceNotes: { ...state.customVoiceNotes, [action.eventId]: voiceNote },
+        events: { ...state.events, [action.eventId]: { liveStatus: 'needs_confirmation' } },
+      };
+    }
+
     case 'RESET':
       return getInitialState();
 
@@ -143,6 +220,15 @@ interface AppStateContextValue {
   questionFlag: (eventId: string) => void;
   removeLearnedIdentity: (id: string) => void;
   sendReminder: (customerId: string, message: string, channel: string) => void;
+  recordVoicePayment: (payload: {
+    eventId: string;
+    transcript: string;
+    recordedAt: string;
+    audioLabel: string;
+    amount: number;
+    customerId: string | null;
+    rawLabel: string;
+  }) => void;
   reset: () => void;
 }
 
@@ -164,11 +250,45 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     (customerId: string, message: string, channel: string) => dispatch({ type: 'SEND_REMINDER', customerId, message, channel }),
     []
   );
+  const recordVoicePayment = useCallback(
+    (payload: {
+      eventId: string;
+      transcript: string;
+      recordedAt: string;
+      audioLabel: string;
+      amount: number;
+      customerId: string | null;
+      rawLabel: string;
+    }) => dispatch({ type: 'RECORD_VOICE_PAYMENT', ...payload }),
+    []
+  );
   const reset = useCallback(() => dispatch({ type: 'RESET' }), []);
 
   const value = useMemo(
-    () => ({ state, confirmEvent, undoEvent, changeCustomer, acceptFlag, questionFlag, removeLearnedIdentity, sendReminder, reset }),
-    [state, confirmEvent, undoEvent, changeCustomer, acceptFlag, questionFlag, removeLearnedIdentity, sendReminder, reset]
+    () => ({
+      state,
+      confirmEvent,
+      undoEvent,
+      changeCustomer,
+      acceptFlag,
+      questionFlag,
+      removeLearnedIdentity,
+      sendReminder,
+      recordVoicePayment,
+      reset,
+    }),
+    [
+      state,
+      confirmEvent,
+      undoEvent,
+      changeCustomer,
+      acceptFlag,
+      questionFlag,
+      removeLearnedIdentity,
+      sendReminder,
+      recordVoicePayment,
+      reset,
+    ]
   );
 
   return <AppStateContext.Provider value={value}>{children}</AppStateContext.Provider>;

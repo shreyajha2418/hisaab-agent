@@ -1,4 +1,4 @@
-import type { AllocationLine, EventStatus } from '../types';
+import type { AiOutput, AllocationLine, CashVoiceNote, EventStatus } from '../types';
 
 // An event's live status extends the data's baseline EventStatus with the
 // two outcomes a human action produces: confirming a needs_confirmation
@@ -38,6 +38,11 @@ export interface AppState {
   flagResolutions: Record<string, FlagResolution>;
   /** customerId -> the overdue reminder Aman approved and sent in this session. */
   sentReminders: Record<string, SentReminder>;
+  /** Events created live from a real voice recording (not in ai_outputs.json
+   *  — those are pre-computed, these are genuinely parsed at record time).
+   *  Keyed by the same generated eventId as its customVoiceNotes entry. */
+  customEvents: Record<string, AiOutput>;
+  customVoiceNotes: Record<string, CashVoiceNote>;
 }
 
 export interface SentReminder {

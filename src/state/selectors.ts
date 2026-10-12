@@ -32,18 +32,27 @@ export function getDerivedBillStatus(state: AppState, billNumber: string): 'paid
   return 'open';
 }
 
+/** Looks up an event's AiOutput — a live voice recording's genuinely
+ * computed record (state.customEvents) if it has one, otherwise the
+ * pre-computed scripted one. Every place that used to index `aiOutputs`
+ * directly goes through this instead, so a recorded voice payment flows
+ * through the exact same confirm/allocate/dues machinery as a scripted one. */
+export function getOutput(state: AppState, eventId: string): AiOutput | undefined {
+  return state.customEvents[eventId] ?? aiOutputs[eventId];
+}
+
 /** The effective allocation for an event — Aman's manual reassignment
- * (if any) takes over from the pre-computed one. */
+ * (if any) takes over from the pre-computed/recorded one. */
 export function getEffectiveAllocation(state: AppState, eventId: string) {
   const override = state.events[eventId]?.override;
   if (override) return override.allocation;
-  return aiOutputs[eventId].allocation;
+  return getOutput(state, eventId)?.allocation ?? [];
 }
 
 export function getEffectiveCustomerId(state: AppState, eventId: string): string | null {
   const override = state.events[eventId]?.override;
   if (override) return override.customerId;
-  return aiOutputs[eventId].payerMatch.customerId;
+  return getOutput(state, eventId)?.payerMatch.customerId ?? null;
 }
 
 export interface SourceInfo {
@@ -51,7 +60,7 @@ export interface SourceInfo {
   channelLabel: string;
 }
 
-export function getSourceInfo(out: AiOutput): SourceInfo {
+export function getSourceInfo(state: AppState, out: AiOutput): SourceInfo {
   if (out.sourceType === 'razorpay_payment') {
     const p = razorpayPayments.find((x) => x.id === out.eventId);
     return { dateTime: p?.time ?? '', channelLabel: 'Razorpay QR' };
@@ -60,7 +69,7 @@ export function getSourceInfo(out: AiOutput): SourceInfo {
     const l = bankStatement.find((x) => x.id === out.eventId);
     return { dateTime: l ? `${l.date}T12:00:00+05:30` : '', channelLabel: 'Bank transfer' };
   }
-  const v = cashVoiceNotes.find((x) => x.id === out.eventId);
+  const v = state.customVoiceNotes[out.eventId] ?? cashVoiceNotes.find((x) => x.id === out.eventId);
   return { dateTime: v?.recordedAt ?? '', channelLabel: 'Cash' };
 }
 
@@ -74,7 +83,8 @@ export interface DecisionEvent {
 }
 
 function toDecisionEvent(state: AppState, eventId: string): DecisionEvent {
-  const out = aiOutputs[eventId];
+  const out = getOutput(state, eventId);
+  if (!out) throw new Error(`No AiOutput found for event ${eventId}`);
   const customerId = getEffectiveCustomerId(state, eventId);
   const customer = customerId ? getCustomer(customerId) : undefined;
   return {
@@ -83,12 +93,13 @@ function toDecisionEvent(state: AppState, eventId: string): DecisionEvent {
     liveStatus: state.events[eventId]?.liveStatus ?? out.status,
     customer,
     displayName: customer?.name ?? out.payerMatch.rawLabel ?? 'Unidentified payment',
-    source: getSourceInfo(out),
+    source: getSourceInfo(state, out),
   };
 }
 
 export function getAllEvents(state: AppState): DecisionEvent[] {
-  return Object.keys(aiOutputs).map((eventId) => toDecisionEvent(state, eventId));
+  const eventIds = new Set([...Object.keys(aiOutputs), ...Object.keys(state.customEvents)]);
+  return [...eventIds].map((eventId) => toDecisionEvent(state, eventId));
 }
 
 export function getNeedsConfirmationEvents(state: AppState): DecisionEvent[] {
@@ -186,16 +197,19 @@ export interface TodayByChannel {
 
 /** Money that arrived today, by channel — independent of match/confirm
  * status (Aman received it either way), excluding set-aside amounts
- * (settlement/own-deposit/interest aren't new customer money). */
-export function getTodayByChannel(): TodayByChannel {
+ * (settlement/own-deposit/interest aren't new customer money). Includes
+ * cash from both the scripted voice note and any recorded live this
+ * session, since both are real money Aman received today either way. */
+export function getTodayByChannel(state: AppState): TodayByChannel {
   const razorpayQr = razorpayPayments.reduce((sum, p) => sum + p.amount, 0);
 
   const setAsideIds = new Set(Object.values(aiOutputs).filter((o) => o.status === 'set_aside').map((o) => o.eventId));
   const bank = bankStatement.filter((l) => !setAsideIds.has(l.id)).reduce((sum, l) => sum + l.creditAmount, 0);
 
-  const cash = cashVoiceNotes.reduce((sum, v) => sum + (aiOutputs[v.id]?.amount ?? 0), 0);
+  const scriptedCash = cashVoiceNotes.reduce((sum, v) => sum + (aiOutputs[v.id]?.amount ?? 0), 0);
+  const recordedCash = Object.values(state.customEvents).reduce((sum, o) => sum + o.amount, 0);
 
-  return { razorpayQr, bank, cash };
+  return { razorpayQr, bank, cash: scriptedCash + recordedCash };
 }
 
 export function getCustomerOpenBills(state: AppState, customerId: string) {

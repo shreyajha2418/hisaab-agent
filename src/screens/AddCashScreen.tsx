@@ -13,21 +13,23 @@ import {
   StopCircleIcon,
   Text,
 } from '@razorpay/blade/components';
-import { aiOutputs, cashVoiceNotes } from '../data';
+import { cashVoiceNotes, customers } from '../data';
+import { useAppState } from '../state/AppStateContext';
 import { useNav } from '../state/NavContext';
-import { getCustomer } from '../state/selectors';
+import { getCustomer, getOutput } from '../state/selectors';
+import { parseVoicePayment } from '../utils/parseVoicePayment';
 import { formatTime } from '../utils/dates';
 
-type Stage = 'idle' | 'recording' | 'transcribing' | 'transcribed' | 'thinking' | 'matched';
+type Stage = 'idle' | 'recording' | 'transcribing' | 'transcribed' | 'thinking' | 'matched' | 'no_amount';
 
-// This demo has exactly one voice note scenario (Verma, ₹8,000 cash) —
-// matches the PRD's own demo moment. The microphone recording is real (the
-// merchant's own voice, with a live level meter and playback), but the
-// transcript and match are pre-computed, like every other AI output here.
-// If the microphone isn't available or permission is denied, it falls back
-// to the simulated recording.
-const NOTE = cashVoiceNotes[0];
-const OUT = aiOutputs[NOTE.id];
+// A real voice note, really transcribed (Web Speech API — free, no key, no
+// backend) and really matched (name + amount parsing against the live
+// customer/bill data, same spirit as allocateOldestFirst). Works for any of
+// the 5 customers, not just one scripted scenario. If the browser has no
+// mic or no speech recognition, it falls back to the scripted Verma
+// transcript below, which still flows through the same real matching —
+// the demo can't dead-end either way.
+const FALLBACK_NOTE = cashVoiceNotes[0];
 const BAR_COUNT = 28;
 const MAX_SECONDS = 15;
 const PRIMARY = 'hsla(218, 89%, 51%, 1)';
@@ -70,14 +72,23 @@ function formatDuration(seconds: number) {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 }
 
+function getSpeechRecognitionCtor(): SpeechRecognitionConstructor | undefined {
+  return window.SpeechRecognition ?? window.webkitSpeechRecognition;
+}
+
 export function AddCashScreen() {
+  const { state, recordVoicePayment } = useAppState();
   const { back, navigate } = useNav();
   const [stage, setStage] = useState<Stage>('idle');
   const [levels, setLevels] = useState<number[]>(() => Array(BAR_COUNT).fill(0));
   const [elapsed, setElapsed] = useState(0);
+  const [liveText, setLiveText] = useState('');
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [duration, setDuration] = useState<number | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [transcript, setTranscript] = useState('');
+  const [recordedAt, setRecordedAt] = useState<string | null>(null);
+  const [eventId, setEventId] = useState<string | null>(null);
 
   const streamRef = useRef<MediaStream | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
@@ -87,8 +98,10 @@ export function AddCashScreen() {
   const startedAtRef = useRef(0);
   const playerRef = useRef<HTMLAudioElement | null>(null);
   const urlRef = useRef<string | null>(null);
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const finalTranscriptRef = useRef('');
 
-  const customer = getCustomer(OUT.payerMatch.customerId ?? '');
+  const out = eventId ? getOutput(state, eventId) : undefined;
 
   function stopMeters() {
     if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
@@ -101,10 +114,21 @@ export function AddCashScreen() {
     audioCtxRef.current = null;
   }
 
-  // Clean up the microphone, meters and recording URL when leaving the screen.
+  function stopRecognition() {
+    try {
+      recognitionRef.current?.stop();
+    } catch {
+      // Already stopped — nothing to do.
+    }
+    recognitionRef.current = null;
+  }
+
+  // Clean up the microphone, recognizer, meters and recording URL when
+  // leaving the screen.
   useEffect(
     () => () => {
       stopMeters();
+      stopRecognition();
       if (recorderRef.current && recorderRef.current.state !== 'inactive') recorderRef.current.stop();
       playerRef.current?.pause();
       if (urlRef.current) URL.revokeObjectURL(urlRef.current);
@@ -112,9 +136,23 @@ export function AddCashScreen() {
     [],
   );
 
+  function resetRecording() {
+    setStage('idle');
+    setTranscript('');
+    setLiveText('');
+    setAudioUrl(null);
+    setDuration(null);
+    setEventId(null);
+    finalTranscriptRef.current = '';
+  }
+
   function simulateRecording() {
+    setRecordedAt(new Date().toISOString());
     setStage('recording');
-    setTimeout(() => setStage('transcribed'), 1300);
+    setTimeout(() => {
+      setTranscript(FALLBACK_NOTE.transcript);
+      setStage('transcribed');
+    }, 1300);
   }
 
   async function startRecording() {
@@ -130,6 +168,7 @@ export function AddCashScreen() {
       return;
     }
     streamRef.current = stream;
+    setRecordedAt(new Date().toISOString());
 
     // Live level meter from the real microphone signal.
     const ctx = new AudioContext();
@@ -166,6 +205,41 @@ export function AddCashScreen() {
       setDuration((performance.now() - startedAtRef.current) / 1000);
     };
 
+    // Real transcription, running alongside the recording — free, no API
+    // key, no backend (the browser's own speech recognition). If it's not
+    // available (e.g. Safari/Firefox), recording still works; the
+    // transcript just falls back to the scripted line on stop.
+    finalTranscriptRef.current = '';
+    setLiveText('');
+    const SpeechRecognitionCtor = getSpeechRecognitionCtor();
+    if (SpeechRecognitionCtor) {
+      const recognition = new SpeechRecognitionCtor();
+      recognition.lang = 'en-IN';
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.onresult = (e) => {
+        let finalChunk = '';
+        let interimChunk = '';
+        for (let i = e.resultIndex; i < e.results.length; i++) {
+          const piece = e.results[i][0].transcript;
+          if (e.results[i].isFinal) finalChunk += piece;
+          else interimChunk += piece;
+        }
+        if (finalChunk) finalTranscriptRef.current += finalChunk;
+        setLiveText(finalTranscriptRef.current + interimChunk);
+      };
+      recognition.onerror = () => {
+        // Swallow — stopRecording() falls back to the scripted transcript
+        // if nothing was ever recognized.
+      };
+      try {
+        recognition.start();
+        recognitionRef.current = recognition;
+      } catch {
+        recognitionRef.current = null;
+      }
+    }
+
     startedAtRef.current = performance.now();
     setElapsed(0);
     setLevels(Array(BAR_COUNT).fill(0));
@@ -180,9 +254,16 @@ export function AddCashScreen() {
 
   function stopRecording() {
     if (recorderRef.current && recorderRef.current.state !== 'inactive') recorderRef.current.stop();
+    stopRecognition();
     stopMeters();
     setStage('transcribing');
-    setTimeout(() => setStage('transcribed'), 1200);
+    // Give the recognizer's async final result a moment to land before
+    // reading it back.
+    setTimeout(() => {
+      const recognized = finalTranscriptRef.current.trim();
+      setTranscript(recognized || FALLBACK_NOTE.transcript);
+      setStage('transcribed');
+    }, 1200);
   }
 
   function togglePlay() {
@@ -204,12 +285,33 @@ export function AddCashScreen() {
   function matchIt() {
     playerRef.current?.pause();
     setIsPlaying(false);
+
+    const parsed = parseVoicePayment(transcript, customers);
+    if (parsed.amount === null) {
+      setStage('no_amount');
+      return;
+    }
+    const amount = parsed.amount;
+    const newEventId = `voice_${Date.now()}`;
+    setEventId(newEventId);
     setStage('thinking');
-    setTimeout(() => setStage('matched'), 1300);
+    setTimeout(() => {
+      recordVoicePayment({
+        eventId: newEventId,
+        transcript,
+        recordedAt: recordedAt ?? new Date().toISOString(),
+        audioLabel: duration !== null ? `Voice note · ${formatDuration(duration)}` : FALLBACK_NOTE.audioLabel,
+        amount,
+        customerId: parsed.customerId,
+        rawLabel: parsed.rawLabel,
+      });
+      setStage('matched');
+    }, 1300);
   }
 
   const isLiveRecording = stage === 'recording' && streamRef.current !== null;
-  const noteLabel = duration !== null ? `Voice note · ${formatDuration(duration)}` : NOTE.audioLabel;
+  const noteLabel = duration !== null ? `Voice note · ${formatDuration(duration)}` : FALLBACK_NOTE.audioLabel;
+  const matchedCustomer = out?.payerMatch.customerId ? getCustomer(out.payerMatch.customerId) : undefined;
 
   return (
     <Box>
@@ -229,7 +331,8 @@ export function AddCashScreen() {
         {stage === 'idle' && (
           <Box display="flex" flexDirection="column" alignItems="center" gap="spacing.5" paddingTop="spacing.9">
             <Text color="surface.text.gray.muted" textAlign="center">
-              Got cash from a customer? Just say it, and Hisaab Agent will match it to their bills.
+              Got cash from a customer? Just say their name and the amount — Hisaab Agent will match it to their
+              bills.
             </Text>
             <Box padding="spacing.4" backgroundColor="surface.background.gray.moderate" borderRadius="medium">
               <Text size="small" color="surface.text.gray.muted" textAlign="center">
@@ -256,8 +359,8 @@ export function AddCashScreen() {
                 <Bar key={i} $h={h} $color={PRIMARY} />
               ))}
             </Bars>
-            <Text size="small" color="surface.text.gray.muted">
-              Tap stop when you're done
+            <Text size="small" color="surface.text.gray.muted" textAlign="center">
+              {liveText ? `"${liveText}"` : "Tap stop when you're done"}
             </Text>
             <Button icon={StopCircleIcon} variant="secondary" size="large" onClick={stopRecording}>
               Stop
@@ -283,12 +386,12 @@ export function AddCashScreen() {
           </Box>
         )}
 
-        {(stage === 'transcribed' || stage === 'thinking' || stage === 'matched') && (
+        {(stage === 'transcribed' || stage === 'thinking' || stage === 'matched' || stage === 'no_amount') && (
           <Box width="100%" display="flex" flexDirection="column" gap="spacing.5">
             <Box padding="spacing.4" backgroundColor="surface.background.gray.moderate" borderRadius="medium">
               <Box display="flex" alignItems="center" justifyContent="space-between" gap="spacing.3">
                 <Text size="small" color="surface.text.gray.muted">
-                  {noteLabel} · {formatTime(NOTE.recordedAt)}
+                  {noteLabel} · {formatTime(recordedAt ?? FALLBACK_NOTE.recordedAt)}
                 </Text>
                 {audioUrl && (
                   <Button
@@ -302,7 +405,7 @@ export function AddCashScreen() {
                 )}
               </Box>
               <Text marginTop="spacing.2" size="large">
-                "{NOTE.transcript}"
+                "{transcript}"
               </Text>
             </Box>
 
@@ -310,6 +413,17 @@ export function AddCashScreen() {
               <Button isFullWidth onClick={matchIt}>
                 Match it
               </Button>
+            )}
+
+            {stage === 'no_amount' && (
+              <Box display="flex" flexDirection="column" gap="spacing.3">
+                <Text size="small" color="surface.text.gray.muted">
+                  Didn't catch an amount in that — try recording again, with a number.
+                </Text>
+                <Button variant="secondary" isFullWidth onClick={resetRecording}>
+                  Record again
+                </Button>
+              </Box>
             )}
 
             {stage === 'thinking' && (
@@ -324,16 +438,16 @@ export function AddCashScreen() {
               </Box>
             )}
 
-            {stage === 'matched' && (
+            {stage === 'matched' && out && (
               <Box display="flex" flexDirection="column" gap="spacing.4">
                 <Box display="flex" alignItems="center" justifyContent="space-between">
-                  <Text weight="semibold">{customer?.name ?? 'Unidentified'}</Text>
-                  <Amount value={OUT.amount} suffix="none" size="large" type="heading" />
+                  <Text weight="semibold">{matchedCustomer?.name ?? `"${out.payerMatch.rawLabel}"`}</Text>
+                  <Amount value={out.amount} suffix="none" size="large" type="heading" />
                 </Box>
                 <Text size="small" color="surface.text.gray.muted">
-                  {OUT.payerMatch.reasoning}
+                  {out.payerMatch.reasoning}
                 </Text>
-                <Button isFullWidth onClick={() => navigate({ name: 'matchDetail', eventId: NOTE.id })}>
+                <Button isFullWidth onClick={() => eventId && navigate({ name: 'matchDetail', eventId })}>
                   Review match
                 </Button>
               </Box>

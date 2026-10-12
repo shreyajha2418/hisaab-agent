@@ -8,8 +8,8 @@ import { ThinkingIndicator } from '../components/ThinkingIndicator';
 import { useAgentThinking } from '../hooks/useAgentThinking';
 import { useAppState } from '../state/AppStateContext';
 import { useNav } from '../state/NavContext';
-import { aiOutputs, customers } from '../data';
-import { getCustomer, getEffectiveAllocation, getEffectiveCustomerId, getSourceInfo } from '../state/selectors';
+import { customers } from '../data';
+import { getCustomer, getEffectiveAllocation, getEffectiveCustomerId, getOutput, getSourceInfo } from '../state/selectors';
 import { formatShortDate, formatTime } from '../utils/dates';
 
 export function MatchDetailScreen({ eventId }: { eventId: string }) {
@@ -19,13 +19,22 @@ export function MatchDetailScreen({ eventId }: { eventId: string }) {
   const [pickingCustomer, setPickingCustomer] = useState(false);
 
   const isThinking = useAgentThinking(eventId);
-  const out = aiOutputs[eventId];
+  const out = getOutput(state, eventId);
+
+  if (!out) {
+    return (
+      <Box padding="spacing.6">
+        <Text color="surface.text.gray.muted">This event couldn't be found — it may have been cleared by a demo reset.</Text>
+      </Box>
+    );
+  }
+
   const liveStatus = state.events[eventId]?.liveStatus ?? out.status;
   const customerId = getEffectiveCustomerId(state, eventId);
   const customer = customerId ? getCustomer(customerId) : undefined;
   const suggestedCustomer = out.payerMatch.suggestedCustomerId ? getCustomer(out.payerMatch.suggestedCustomerId) : undefined;
   const allocation = getEffectiveAllocation(state, eventId);
-  const source = getSourceInfo(out);
+  const source = getSourceInfo(state, out);
   const displayName = customer?.name ?? out.payerMatch.rawLabel ?? 'Unidentified payment';
   const flagResolution = state.flagResolutions[eventId] ?? 'pending';
 
