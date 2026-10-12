@@ -145,3 +145,11 @@ All 8 MVP screens exist after Phase 4; this pass is visual/interaction polish an
 **Shorter "Remembered" toast.** The toast after confirming RAJESH K stayed up long enough to follow onto the next screens; it now dismisses after 2.5 s.
 
 **Verified:** `tsc -b`, `oxlint` clean. Headless run of the recording path using the bottom bar (voice note → Confirm → Decisions → RAJESH K → Question it → Decisions → Mehta → Send) with zero errors; toast visible at 0.5 s, gone by 4 s.
+
+## Phase 9 — "Question it" is now a real WhatsApp send
+
+**Why.** "Question it" read as an internal note-to-self ("I'm questioning this"), not what it actually does — draft a message aimed at the customer. Feedback: the CTA should say it's going to Gupta Pharmacy on WhatsApp, the drafted text should be short (not the paragraph-length version), and tapping it should read as sent, not just drafted.
+
+**What changed** (`src/components/DeductionFlag.tsx`): button relabelled **Ask on WhatsApp** with the `WhatsAppIcon`, same `onQuestion`/`questionFlag` wiring as before — only the copy and presentation changed, not the state machine (`FlagResolution` is still `'pending' | 'accepted' | 'questioned'`). The drafted message is shorter (`"Hi {customer}, this payment was ₹400 short — was that a deduction?"` vs. the old two-sentence version), and the `'questioned'` state now renders as a **sent confirmation** ("Message sent to {customer} on WhatsApp") in the same light-green WhatsApp tint used on the Customer dues reminder, instead of a "ready to send, not yet sent" box — consistent with Aman having just tapped a button labelled "Ask on WhatsApp". Updated the matching data string in `ai_outputs.json` ("Accept / Ask on WhatsApp.") and the README demo script to match.
+
+**Verified:** `tsc -b`, `oxlint`, `build`, `validate-data` all clean (same two pre-existing warnings). Headless-browser pass: confirm RAJESH K → flag shows Accept/Ask on WhatsApp → tap Ask on WhatsApp → sent confirmation with the short message renders in the green WhatsApp box → Undo and re-confirm → Accept path still works unaffected. Zero console/page errors.

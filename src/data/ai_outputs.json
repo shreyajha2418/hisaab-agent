@@ -72,7 +72,7 @@
     "flags": [
       {
         "type": "short_payment",
-        "message": "Likely a deduction (e.g. expiry return). No return note found in bills. Accept / Question it.",
+        "message": "Likely a deduction (e.g. expiry return). No return note found in bills. Accept / Ask on WhatsApp.",
         "shortBy": 400
       }
     ],

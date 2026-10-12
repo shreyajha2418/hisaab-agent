@@ -1,4 +1,4 @@
-import { Alert, Box, Button, Text } from '@razorpay/blade/components';
+import { Alert, Box, Button, Text, WhatsAppIcon } from '@razorpay/blade/components';
 import { formatINR } from '../utils/currency';
 import type { EventFlag } from '../types';
 import type { FlagResolution } from '../state/types';
@@ -28,15 +28,20 @@ export function DeductionFlag({ flag, resolution, customerName, onAccept, onQues
 
   if (resolution === 'questioned') {
     return (
-      <Box marginTop="spacing.4" padding="spacing.4" borderWidth="thin" borderColor="surface.border.gray.muted" borderRadius="medium">
-        <Text size="small" color="surface.text.gray.muted" marginBottom="spacing.2">
-          Ready to send to {customerName}
+      <Box
+        marginTop="spacing.4"
+        padding="spacing.3"
+        backgroundColor="feedback.background.positive.subtle"
+        borderWidth="thin"
+        borderColor="interactive.border.positive.faded"
+        borderRadius="medium"
+      >
+        <Text size="small" weight="semibold">
+          Message sent to {customerName} on WhatsApp
         </Text>
-        <Box padding="spacing.3" backgroundColor="surface.background.gray.moderate" borderRadius="medium">
-          <Text size="small">
-            {`Hi ${customerName}, this payment is ${formatINR(flag.shortBy ?? 0)} short of the bills it was matched to. Could you confirm if this was a deduction (e.g. an expiry return)?`}
-          </Text>
-        </Box>
+        <Text size="small" marginTop="spacing.1">
+          {`Hi ${customerName}, this payment was ${formatINR(flag.shortBy ?? 0)} short — was that a deduction?`}
+        </Text>
       </Box>
     );
   }
@@ -48,8 +53,8 @@ export function DeductionFlag({ flag, resolution, customerName, onAccept, onQues
         <Button variant="secondary" size="small" onClick={onAccept}>
           Accept
         </Button>
-        <Button variant="tertiary" size="small" onClick={onQuestion}>
-          Question it
+        <Button variant="tertiary" size="small" icon={WhatsAppIcon} onClick={onQuestion}>
+          Ask on WhatsApp
         </Button>
       </Box>
     </Box>
