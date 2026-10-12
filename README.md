@@ -64,7 +64,7 @@ Maps the PRD's own demo-moments table to actual taps in this build. Reset demo (
 | 30–45s | Payer identification, learning | Decisions → tap **RAJESH K** → "Yes, this is Gupta Pharmacy" → toast "Remembered…" fires, title updates |
 | 45–65s | Recovery (deduction) | Same screen, now confirmed → the ₹400 short-payment flag is live → **Question it** → drafted message appears |
 | 65–80s | Morning decision list, two minutes | Back to Decisions — Sharma, Kapoor, Verma and Gupta Pharmacy all sit under "Done automatically"; Mehta Medicos shows 46 days overdue under "Needs you" |
-| 80–90s | Close | Decisions → tap **Mehta Medicos** → dues view: ₹18,500, 46 days, Overdue badge — the number Aman now has going into collections |
+| 80–90s | Recovery (overdue) | Decisions → tap **Mehta Medicos** → "Recover ₹18,500 · Reminder due" (last reminder 7 days ago, agent's suggestion, drafted message with a Razorpay payment link) → **Send on WhatsApp** → "Reminder sent… follow up in 3 days" |
 
 ## Status
 

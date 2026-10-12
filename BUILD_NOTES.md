@@ -123,3 +123,17 @@ All 8 MVP screens exist after Phase 4; this pass is visual/interaction polish an
 **Phone frame fixes for desktop recording.** (1) Blade's `BottomNav` is `position: fixed`, so on desktop it stuck to the bottom of the browser window, outside the phone frame. `transform: translateZ(0)` on the frame makes it the containing block for fixed children, so the nav and toasts sit inside the phone. (2) Screen titles on pushed screens ran under the notch; the scroll area now has 24 px top padding on desktop only (none on real phones).
 
 **Verified:** `npm run build` and `oxlint` clean (same two pre-existing warnings). Headless Chromium with a fake microphone: record → live meter + timer → Stop → transcribing → transcript with Play → Match it → Review match (Verma, ₹2,000 pending). Mic-denied run falls back to the simulated flow. Zero console/page errors.
+
+## Phase 7 — Overdue recovery reminder (Mehta Medicos)
+
+**Why.** The demo ended on a number (Mehta, ₹18,500, 46 days overdue) rather than an action. Track 2 asks what action the AI produces and what the merchant approves, so the dues view now turns an overdue balance into a recovery step.
+
+**What it does.** On a customer's dues view, if they have bills past the 30-day overdue threshold and a reminder record exists, a "Recover ₹X · Reminder due" box shows: when the last reminder went out and on which channel ("7 days ago on WhatsApp · No payment since"), the agent's suggestion (pre-computed reasoning in `src/data/reminders.json`), and a drafted message to the owner with a Razorpay payment link for the exact overdue amount. Aman can **Edit** the message (Blade `TextArea`) or **Send on WhatsApp**. After sending, the box becomes a confirmation ("Reminder sent… Hisaab Agent will follow up in 3 days if it's still unpaid") with the sent message, and Mehta's row in Decisions reads "· reminder sent" instead of "· reminder due".
+
+**Decisions.**
+- *Through Razorpay's own rails, not a new collections engine.* The reminder carries a Razorpay payment link (a feature Razorpay already has), which keeps the PRD's non-goal intact: Hisaab Agent decides *who, how much and when*; it doesn't rebuild chasing.
+- *Approval before sending.* Nothing is sent automatically, consistent with the PRD's rule that nothing reaches a retailer without Aman's tap. In the prototype nothing actually leaves the app; "sent" is recorded in state only, and the payment link is shown as a label, not a real URL.
+- *What's AI vs rule.* "Last reminder 7 days ago" is a fact; the suggestion (why now, how firm) and the drafted message are the agent's part. The message is composed from live data (owner's first name, bill number, date, days overdue, amount), so it can't drift from the bills.
+- `UNDO_EVENT` now spreads the previous state, so undoing a payment no longer drops unrelated state such as sent reminders.
+
+**Verified:** `tsc -b`, `oxlint` clean (same pre-existing warnings). Headless Chromium: full demo run (voice note → confirm → RAJESH K → question deduction → set aside → Mehta → edit → send) with zero console/page errors; Decisions row updates to "reminder sent"; Reset demo restores the "Reminder due" box.

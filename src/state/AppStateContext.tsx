@@ -12,6 +12,7 @@ type Action =
   | { type: 'ACCEPT_FLAG'; eventId: string }
   | { type: 'QUESTION_FLAG'; eventId: string }
   | { type: 'REMOVE_LEARNED_IDENTITY'; id: string }
+  | { type: 'SEND_REMINDER'; customerId: string; message: string; channel: string }
   | { type: 'RESET' };
 
 function getInitialState(): AppState {
@@ -27,7 +28,7 @@ function getInitialState(): AppState {
     }
   }
 
-  return { billPaid, events, learnedIdentities: [], flagResolutions: {} };
+  return { billPaid, events, learnedIdentities: [], flagResolutions: {}, sentReminders: {} };
 }
 
 function reducer(state: AppState, action: Action): AppState {
@@ -83,6 +84,7 @@ function reducer(state: AppState, action: Action): AppState {
       const flagResolutions = { ...state.flagResolutions };
       delete flagResolutions[action.eventId];
       return {
+        ...state,
         billPaid,
         events: { ...state.events, [action.eventId]: { liveStatus: 'needs_confirmation' } },
         learnedIdentities: state.learnedIdentities.filter((l) => l.id !== action.eventId),
@@ -116,6 +118,14 @@ function reducer(state: AppState, action: Action): AppState {
     case 'REMOVE_LEARNED_IDENTITY':
       return { ...state, learnedIdentities: state.learnedIdentities.filter((l) => l.id !== action.id) };
 
+    case 'SEND_REMINDER':
+      // Demo only: nothing actually leaves the app. Records that Aman
+      // approved and "sent" this reminder, so the dues view can show it.
+      return {
+        ...state,
+        sentReminders: { ...state.sentReminders, [action.customerId]: { message: action.message, channel: action.channel } },
+      };
+
     case 'RESET':
       return getInitialState();
 
@@ -132,6 +142,7 @@ interface AppStateContextValue {
   acceptFlag: (eventId: string) => void;
   questionFlag: (eventId: string) => void;
   removeLearnedIdentity: (id: string) => void;
+  sendReminder: (customerId: string, message: string, channel: string) => void;
   reset: () => void;
 }
 
@@ -149,11 +160,15 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   const acceptFlag = useCallback((eventId: string) => dispatch({ type: 'ACCEPT_FLAG', eventId }), []);
   const questionFlag = useCallback((eventId: string) => dispatch({ type: 'QUESTION_FLAG', eventId }), []);
   const removeLearnedIdentity = useCallback((id: string) => dispatch({ type: 'REMOVE_LEARNED_IDENTITY', id }), []);
+  const sendReminder = useCallback(
+    (customerId: string, message: string, channel: string) => dispatch({ type: 'SEND_REMINDER', customerId, message, channel }),
+    []
+  );
   const reset = useCallback(() => dispatch({ type: 'RESET' }), []);
 
   const value = useMemo(
-    () => ({ state, confirmEvent, undoEvent, changeCustomer, acceptFlag, questionFlag, removeLearnedIdentity, reset }),
-    [state, confirmEvent, undoEvent, changeCustomer, acceptFlag, questionFlag, removeLearnedIdentity, reset]
+    () => ({ state, confirmEvent, undoEvent, changeCustomer, acceptFlag, questionFlag, removeLearnedIdentity, sendReminder, reset }),
+    [state, confirmEvent, undoEvent, changeCustomer, acceptFlag, questionFlag, removeLearnedIdentity, sendReminder, reset]
   );
 
   return <AppStateContext.Provider value={value}>{children}</AppStateContext.Provider>;

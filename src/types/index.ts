@@ -107,3 +107,16 @@ export interface AiOutput {
 }
 
 export type AiOutputsMap = Record<string, AiOutput>;
+
+/** Pre-computed overdue-recovery suggestion for a customer: when they were
+ *  last reminded, and what the agent recommends now. */
+export interface ReminderRecord {
+  customerId: string;
+  lastReminderAt: string; // ISO datetime
+  lastChannel: string;
+  remindersSent: number;
+  suggestion: {
+    reasoning: string;
+    nextFollowUpDays: number;
+  };
+}

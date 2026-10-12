@@ -36,4 +36,11 @@ export interface AppState {
   learnedIdentities: LearnedIdentity[];
   /** eventId -> how its short_payment flag (if any) was resolved. Absent means 'pending'. */
   flagResolutions: Record<string, FlagResolution>;
+  /** customerId -> the overdue reminder Aman approved and sent in this session. */
+  sentReminders: Record<string, SentReminder>;
+}
+
+export interface SentReminder {
+  message: string;
+  channel: string;
 }

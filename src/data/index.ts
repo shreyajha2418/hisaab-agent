@@ -6,6 +6,7 @@ import type {
   Customer,
   RazorpayPayment,
   RazorpaySettlement,
+  ReminderRecord,
 } from '../types';
 
 import customersRaw from './customers.json';
@@ -15,6 +16,7 @@ import razorpaySettlementsRaw from './razorpay_settlements.json';
 import bankStatementRaw from './bank_statement.json';
 import cashVoiceNoteRaw from './cash_voice_note.json';
 import aiOutputsRaw from './ai_outputs.json';
+import remindersRaw from './reminders.json';
 
 // JSON string literals are widened to `string` by TypeScript, so union-typed
 // fields (e.g. BillStatus) need a cast here rather than `satisfies` — the
@@ -27,3 +29,4 @@ export const razorpaySettlements = razorpaySettlementsRaw as unknown as Razorpay
 export const bankStatement = bankStatementRaw as unknown as BankStatementLine[];
 export const cashVoiceNotes = cashVoiceNoteRaw as unknown as CashVoiceNote[];
 export const aiOutputs = aiOutputsRaw as unknown as AiOutputsMap;
+export const reminders = remindersRaw as unknown as ReminderRecord[];

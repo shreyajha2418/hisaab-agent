@@ -74,7 +74,7 @@ export function DecisionListScreen() {
               <Box key={bill.billNumber} borderBottomWidth="thin" borderColor="surface.border.gray.muted">
                 <DecisionCard
                   title={customer?.name ?? bill.customerId}
-                  subtitle={`${bill.billNumber} — ${days} days overdue`}
+                  subtitle={`${bill.billNumber} — ${days} days overdue${state.sentReminders[bill.customerId] ? ' · reminder sent' : ' · reminder due'}`}
                   amount={remaining}
                   badge={<Badge color="negative">Overdue</Badge>}
                   onClick={() => navigate({ name: 'customerDues', customerId: bill.customerId })}

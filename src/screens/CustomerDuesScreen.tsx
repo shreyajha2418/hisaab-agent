@@ -1,5 +1,7 @@
 import { Amount, Badge, Box, ChevronLeftIcon, Heading, IconButton, Text } from '@razorpay/blade/components';
 import { DecisionCard } from '../components/DecisionCard';
+import { RecoveryReminder } from '../components/RecoveryReminder';
+import { reminders } from '../data';
 import { useAppState } from '../state/AppStateContext';
 import { useNav } from '../state/NavContext';
 import { getCustomer, getCustomerDues, getCustomerOpenBills, getCustomerRecentPayments } from '../state/selectors';
@@ -8,13 +10,15 @@ import { formatShortDate } from '../utils/dates';
 const OVERDUE_THRESHOLD_DAYS = 30;
 
 export function CustomerDuesScreen({ customerId }: { customerId: string }) {
-  const { state } = useAppState();
+  const { state, sendReminder } = useAppState();
   const { back, navigate } = useNav();
 
   const customer = getCustomer(customerId);
   const totalDues = getCustomerDues(state, customerId);
   const openBills = getCustomerOpenBills(state, customerId);
   const recentPayments = getCustomerRecentPayments(state, customerId);
+  const overdueBills = openBills.filter((b) => b.days > OVERDUE_THRESHOLD_DAYS && b.remaining > 0);
+  const reminderRecord = reminders.find((r) => r.customerId === customerId);
 
   return (
     <Box>
@@ -43,6 +47,16 @@ export function CustomerDuesScreen({ customerId }: { customerId: string }) {
           </Text>
           <Amount value={totalDues} suffix="none" size="2xlarge" type="heading" />
         </Box>
+
+        {customer && reminderRecord && overdueBills.length > 0 && (
+          <RecoveryReminder
+            customer={customer}
+            overdueBills={overdueBills}
+            record={reminderRecord}
+            sent={state.sentReminders[customerId]}
+            onSend={(message, channel) => sendReminder(customerId, message, channel)}
+          />
+        )}
 
         <Box marginBottom="spacing.7">
           <Heading size="small" marginBottom="spacing.2">

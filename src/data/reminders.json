@@ -1,0 +1,12 @@
+[
+  {
+    "customerId": "cust_mehta",
+    "lastReminderAt": "2026-09-27T11:00:00+05:30",
+    "lastChannel": "WhatsApp",
+    "remindersSent": 1,
+    "suggestion": {
+      "reasoning": "Mehta Medicos usually pays promptly, but nothing has come in during the 7 days since the last reminder. A firmer second reminder today, with a Razorpay payment link for the exact amount, makes it one tap for them to pay.",
+      "nextFollowUpDays": 3
+    }
+  }
+]
