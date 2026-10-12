@@ -27,12 +27,11 @@ const Transition = styled.div`
 
 function Screens() {
   const { route } = useNav();
-  const showBottomNav = route.name === 'home' || route.name === 'decisions' || route.name === 'settings';
   const routeKey = route.name + ('eventId' in route ? route.eventId : '') + ('customerId' in route ? route.customerId : '');
 
   return (
     <Box display="flex" flexDirection="column" minHeight="100%">
-      <Box flex="1" paddingBottom={showBottomNav ? 'spacing.11' : 'spacing.0'}>
+      <Box flex="1" paddingBottom="spacing.11">
         <Transition key={routeKey}>
           {route.name === 'home' && <HomeScreen />}
           {route.name === 'decisions' && <DecisionListScreen />}
@@ -43,7 +42,10 @@ function Screens() {
           {route.name === 'customerDues' && <CustomerDuesScreen customerId={route.customerId} />}
         </Transition>
       </Box>
-      {showBottomNav && <BottomNav />}
+      {/* Shown on every screen, including pushed ones (Add cash, Match
+          detail, dues), so a tab is always one tap away; switchTab resets
+          the stack, so there's no need to back out screen by screen. */}
+      <BottomNav />
     </Box>
   );
 }

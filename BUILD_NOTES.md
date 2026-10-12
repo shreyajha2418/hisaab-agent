@@ -137,3 +137,11 @@ All 8 MVP screens exist after Phase 4; this pass is visual/interaction polish an
 - `UNDO_EVENT` now spreads the previous state, so undoing a payment no longer drops unrelated state such as sent reminders.
 
 **Verified:** `tsc -b`, `oxlint` clean (same pre-existing warnings). Headless Chromium: full demo run (voice note → confirm → RAJESH K → question deduction → set aside → Mehta → edit → send) with zero console/page errors; Decisions row updates to "reminder sent"; Reset demo restores the "Reminder due" box.
+
+## Phase 8 — Navigation for the demo recording
+
+**Bottom bar on every screen.** Found while recording: after confirming the cash voice note, getting to Decisions meant backing out screen by screen (Match detail → Add cash → Home → Decisions). The bottom navigation now shows on every screen, including pushed ones (Add cash, Match detail, a customer's dues), and since `switchTab` already resets the stack, one tap on **Decisions** goes straight there.
+
+**Shorter "Remembered" toast.** The toast after confirming RAJESH K stayed up long enough to follow onto the next screens; it now dismisses after 2.5 s.
+
+**Verified:** `tsc -b`, `oxlint` clean. Headless run of the recording path using the bottom bar (voice note → Confirm → Decisions → RAJESH K → Question it → Decisions → Mehta → Send) with zero errors; toast visible at 0.5 s, gone by 4 s.

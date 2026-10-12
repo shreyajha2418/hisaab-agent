@@ -41,7 +41,7 @@ export function MatchDetailScreen({ eventId }: { eventId: string }) {
     const willLearn = out.payerMatch.customerId === null && !state.events[eventId]?.override && suggestedCustomer;
     confirmEvent(eventId);
     if (willLearn) {
-      show({ content: `Remembered: "${out.payerMatch.rawLabel}" → ${suggestedCustomer.name}`, color: 'positive' });
+      show({ content: `Remembered: "${out.payerMatch.rawLabel}" → ${suggestedCustomer.name}`, color: 'positive', duration: 2500 });
     }
   };
 
