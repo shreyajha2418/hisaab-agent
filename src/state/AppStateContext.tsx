@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useMemo, useReducer } from 'rea
 import type { ReactNode } from 'react';
 import { aiOutputs } from '../data';
 import { allocateOldestFirst } from '../utils/allocate';
-import { getCustomer, getCustomerOpenBills, getOutput } from './selectors';
+import { getAvailableOpenBills, getCustomer, getOutput } from './selectors';
 import type { AppState, EventState } from './types';
 import type { AiOutput, CashVoiceNote, PayerMatch } from '../types';
 
@@ -114,7 +114,7 @@ function reducer(state: AppState, action: Action): AppState {
     }
 
     case 'CHANGE_CUSTOMER': {
-      const openBills = getCustomerOpenBills(state, action.customerId).map((b) => ({
+      const openBills = getAvailableOpenBills(state, action.customerId, action.eventId).map((b) => ({
         billNumber: b.bill.billNumber,
         date: b.bill.date,
         remaining: b.remaining,
@@ -171,7 +171,7 @@ function reducer(state: AppState, action: Action): AppState {
       const allocation = customer
         ? allocateOldestFirst(
             action.amount,
-            getCustomerOpenBills(state, customer.id).map((b) => ({
+            getAvailableOpenBills(state, customer.id).map((b) => ({
               billNumber: b.bill.billNumber,
               date: b.bill.date,
               remaining: b.remaining,

@@ -15,11 +15,16 @@ export function getBill(billNumber: string): Bill | undefined {
 
 /** Live remaining amount on a bill — 0 for bills already marked 'paid' in
  * the source data (historical, pre-dating the demo), otherwise amount
- * minus whatever confirmed/auto_recorded events have applied so far. */
+ * minus whatever confirmed/auto_recorded events have applied so far.
+ * Floored at 0: an overpayment (more applied than the bill is worth —
+ * see getAvailableOpenBills for where that's normally prevented, but this
+ * is the last line of defense) must never go negative, since callers like
+ * getTotalOutstanding sum this across every bill — a negative remainder
+ * would silently cancel out real debt owed elsewhere. */
 export function getRemaining(state: AppState, billNumber: string): number {
   const bill = getBill(billNumber);
   if (!bill || bill.status === 'paid') return 0;
-  return bill.amount - (state.billPaid[billNumber] ?? 0);
+  return Math.max(0, bill.amount - (state.billPaid[billNumber] ?? 0));
 }
 
 export function getDerivedBillStatus(state: AppState, billNumber: string): 'paid' | 'cleared' | 'partial' | 'open' {
@@ -216,6 +221,31 @@ export function getCustomerOpenBills(state: AppState, customerId: string) {
   return bills
     .filter((b) => b.customerId === customerId && b.status === 'open')
     .map((bill) => ({ bill, remaining: getRemaining(state, bill.billNumber), days: daysSince(bill.date) }))
+    .filter((b) => b.remaining > 0);
+}
+
+/** A customer's open bills, with capacity already claimed by OTHER
+ * still-pending (needs_confirmation) events subtracted on top of
+ * getRemaining's confirmed-only view — so computing a brand-new
+ * allocation (a fresh voice recording, or a manual "Change customer"
+ * reassignment) never claims the same rupee of a bill that another
+ * unconfirmed match already has a hold on. Without this, two pending
+ * events can each compute a full allocation against the same bill; if
+ * both are later confirmed, billPaid for that bill exceeds its amount,
+ * which (before this existed) understated getTotalOutstanding business-
+ * wide, since the overflow went negative and these effective zeros clamp
+ * instead. excludeEventId leaves out an event's own prior claim — pass
+ * the event being re-allocated (e.g. on a repeated "Change customer"). */
+export function getAvailableOpenBills(state: AppState, customerId: string, excludeEventId?: string) {
+  const pendingClaims: Record<string, number> = {};
+  for (const event of getNeedsConfirmationEvents(state)) {
+    if (event.eventId === excludeEventId) continue;
+    for (const line of getEffectiveAllocation(state, event.eventId)) {
+      pendingClaims[line.billNumber] = (pendingClaims[line.billNumber] ?? 0) + line.amountApplied;
+    }
+  }
+  return getCustomerOpenBills(state, customerId)
+    .map((b) => ({ ...b, remaining: Math.max(0, b.remaining - (pendingClaims[b.bill.billNumber] ?? 0)) }))
     .filter((b) => b.remaining > 0);
 }
 
